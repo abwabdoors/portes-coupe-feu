@@ -1,1 +1,3 @@
-Flask cloudinary
+Flask
+cloudinary
+supabase
