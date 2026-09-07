@@ -1,17 +1,22 @@
-from flask import Flask, render_template, request, redirect,session
+from flask import Flask, render_template, request, redirect, session
 import json
 import os
+import cloudinary
+import cloudinary.uploader
 
 app = Flask(__name__)
+
 app.secret_key = "CHANGE_THIS_TO_A_RANDOM_SECRET"
+
 ADMIN_CODE = "aZ@z_rI\-/ab#JT31781"
 
 IMAGE_FOLDER = "static/images"
 
+cloudinary.config(secure=True)
+
 
 @app.route("/")
 def accueil():
-
     with open("data.json", "r", encoding="utf-8") as file:
         doors = json.load(file)
 
@@ -22,12 +27,9 @@ def accueil():
 def admin():
 
     if os.path.exists("data.json"):
-
         with open("data.json", "r", encoding="utf-8") as file:
             doors = json.load(file)
-
     else:
-
         doors = []
 
     if request.method == "POST":
@@ -39,20 +41,19 @@ def admin():
 
         image_file = request.files["image"]
 
-        os.makedirs(IMAGE_FOLDER, exist_ok=True)
+        # رفع الصورة إلى Cloudinary
+        upload_result = cloudinary.uploader.upload(image_file)
 
-        image_name = image_file.filename
-
-        image_file.save(
-            os.path.join(IMAGE_FOLDER, image_name)
-        )
+        image_url = upload_result["secure_url"]
+        image_public_id = upload_result["public_id"]
 
         door = {
             "code": code,
             "price": price,
             "type": door_type,
             "features": features,
-            "image": image_name
+            "image": image_url,
+            "public_id": image_public_id
         }
 
         doors.append(door)
@@ -69,6 +70,7 @@ def admin():
 
     return render_template("admin.html", doors=doors)
 
+
 @app.route("/delete/<code>", methods=["POST"])
 def delete_door(code):
 
@@ -78,7 +80,6 @@ def delete_door(code):
     door_to_delete = None
 
     for door in doors:
-
         if door["code"] == code:
             door_to_delete = door
             break
@@ -87,15 +88,11 @@ def delete_door(code):
 
         doors.remove(door_to_delete)
 
-        image_name = door_to_delete["image"]
+        # حذف الصورة من Cloudinary
+        public_id = door_to_delete.get("public_id")
 
-        image_path = os.path.join(
-            IMAGE_FOLDER,
-            image_name
-        )
-
-        if os.path.exists(image_path):
-            os.remove(image_path)
+        if public_id:
+            cloudinary.uploader.destroy(public_id)
 
         with open("data.json", "w", encoding="utf-8") as file:
             json.dump(
@@ -106,14 +103,19 @@ def delete_door(code):
             )
 
     return redirect("/admin")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
     if request.method == "POST":
+
         code = request.form["code"]
 
         if code == ADMIN_CODE:
             session["admin_logged_in"] = True
             return redirect("/admin")
+
         else:
             return render_template(
                 "login.html",
@@ -122,5 +124,6 @@ def login():
 
     return render_template("login.html")
 
+
 if __name__ == "__main__":
- app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
