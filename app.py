@@ -22,7 +22,7 @@ cloudinary.config(secure=True)
 
 @app.route("/")
 def accueil():
-print("SUPABASE TEST")
+    print("SUPABASE TEST")
     result = supabase.table("doors").select("*").order("id").execute()
 
     doors = result.data
