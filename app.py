@@ -47,7 +47,7 @@ def admin():
         image_file = request.files.get("image")
 
         # رفع الصورة إلى Cloudinary
-        upload_result = cloudinary.uploader.upload(image_file)
+        upload_result = cloudinary.uploader.upload(image_file.stream)
 
         image_url = upload_result["secure_url"]
         image_public_id = upload_result["public_id"]
