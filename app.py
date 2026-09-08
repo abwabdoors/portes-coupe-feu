@@ -10,11 +10,13 @@ app.secret_key = os.environ.get("SECRET_KEY", "CHANGE_THIS_SECRET")
 
 ADMIN_CODE = "aZ@z_rI\-/ab#JT31781"
 
+
 # Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 # Cloudinary
 cloudinary.config(secure=True)
@@ -22,7 +24,9 @@ cloudinary.config(secure=True)
 
 @app.route("/")
 def accueil():
+
     print("SUPABASE TEST")
+
     result = supabase.table("doors").select("*").order("id").execute()
 
     doors = result.data
@@ -46,22 +50,29 @@ def admin():
 
         image_file = request.files.get("image")
 
-        # رفع الصورة إلى Cloudinary
-        upload_result = cloudinary.uploader.upload(image_file.stream)
+        try:
 
-        image_url = upload_result["secure_url"]
-        image_public_id = upload_result["public_id"]
+            upload_result = cloudinary.uploader.upload(
+                image_file.stream
+            )
 
-        door = {
-            "code": code,
-            "price": price,
-            "type": door_type,
-            "features": features,
-            "image": image_url,
-            "public_id": image_public_id
-        }
+            image_url = upload_result["secure_url"]
+            image_public_id = upload_result["public_id"]
 
-        supabase.table("doors").insert(door).execute()
+            door = {
+                "code": code,
+                "price": price,
+                "type": door_type,
+                "features": features,
+                "image": image_url,
+                "public_id": image_public_id
+            }
+
+            supabase.table("doors").insert(door).execute()
+
+        except Exception as e:
+
+            return f"ERROR: {e}"
 
         return redirect("/admin")
 
@@ -83,14 +94,14 @@ def delete_door(code):
 
         door = result.data[0]
 
-        # حذف الصورة من Cloudinary
         public_id = door.get("public_id")
 
         if public_id:
             cloudinary.uploader.destroy(public_id)
 
-        # حذف الباب من Supabase
-        supabase.table("doors").delete().eq("code", code).execute()
+        supabase.table("doors").delete().eq(
+            "code", code
+        ).execute()
 
     return redirect("/admin")
 
@@ -119,6 +130,7 @@ def login():
 
 
 if __name__ == "__main__":
+
     app.run(
         host="0.0.0.0",
         port=5000,
