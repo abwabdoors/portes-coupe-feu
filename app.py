@@ -44,7 +44,7 @@ def admin():
         door_type = request.form["type"]
         features = request.form["features"]
 
-        image_file = request.files["image"]
+        image_file = request.files.get("image")
 
         # رفع الصورة إلى Cloudinary
         upload_result = cloudinary.uploader.upload(image_file)
